@@ -1,0 +1,47 @@
+body {
+  padding-left: 16px;
+  padding-right: 16px;
+  font-family: 'Quicksand';
+}
+
+.msg-box {
+  background-color: lightgray;
+  margin: 5px;
+  padding: 8px;
+  border-radius: 10px;
+  width: 50%;
+}
+
+.my-msg {
+  display: flex;
+  justify-content: end;
+}
+
+#msg-input {
+  width: 100%;
+  border-radius: 15px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 8px;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.justify-content-space-between {
+  justify-content: space-between;
+}
+
+.justify-content-end {
+  justify-content: end;
+}
+
+.m-t {
+  margin-top: 16px;
+}
+
+.m-l {
+  margin-left: 16px;
+}
