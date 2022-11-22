@@ -1,12 +1,19 @@
 const path = "https://dxoke3l7j0.execute-api.eu-west-1.amazonaws.com/project/messages";
 const channel_id = "unicorn";
-const myUsername = "Username";
+const myUsername = "admin";
 
-var msgs = [];
+let lastEvaluatedKey = {
+  channel_id: {S: ''},
+  timestamp_utc_iso8601: {S: ''}
+};
 
-function promptMsg(msgs) {
+let msgs = [];
+
+function promptMsg(msgs, showOldMessges) {
   var messageDiv = document.getElementById('messages');
-  messageDiv.innerHTML = '';
+  if (!showOldMessges) {
+    messageDiv.innerHTML = '';
+  }
   
   if (msgs && msgs.length > 0) {
 
@@ -25,52 +32,62 @@ function promptMsg(msgs) {
         } else {
           if (msg.username == myUsername) {
             textDiv.classList.add("my-msg");
-            console.log(textDiv.classList)
           }
         }
       };
   
-      messageDiv.appendChild(clone);
+      messageDiv.prepend(clone);
     });
-  } else {
-
   }
 }
 
-function getMessages() {
-  axios.get(path).then(response => {
-    console.log(response);
-    msgs = response.data.map(dbMsg => Msg.dbMessageToMsg(dbMsg));
-
-    const newMsg = JSON.parse(JSON.stringify(msgs[0]));
-    
-    newMsg.username = "Username"
-    newMsg.timestamp = "2022-11-01T00:42:10"
-    newMsg.message = "Merci beaucoup !"
-
-    msgs.push(newMsg);
-
-    promptMsg(msgs);
-  });
-}
-
-getMessages();
-
-const addMsgBtn = document.getElementById('send-button');
-const addMsgInput = document.getElementById('msg-input');
-addMsgInput.onkeydown = addMsg;
-
-function addMsg(e) {
+async function addMsg(e) {
   if (e.code == "Enter" && addMsgInput.value) {
-    msgs.push({
-      username: myUsername,
-      text: addMsgInput.value,
-      sendAt: new Date()
-    });
+    const newMsg = new Msg(channel_id, addMsgInput.value, moment(new Date()).format('YYYY-MM-DDTHH:mm:ss'), myUsername, 0);
+    await postMessagesAsync(newMsg);
 
-    promptMsg(msgs);
-    console.log(msgs);
+    promptMsg(msgs, false);
 
     addMsgInput.value = null;
   }
 }
+
+async function getMessagesAsync(showOldMessages) {
+  const apiResponse = await axios.get(path, {params: {channel: lastEvaluatedKey.channel_id['S'], timestamp: lastEvaluatedKey.timestamp_utc_iso8601['S']}});
+  const dbMessages = apiResponse.data.Items;
+
+  if (apiResponse.data.LastEvaluatedKey) {
+    lastEvaluatedKey = apiResponse.data.LastEvaluatedKey;
+  } else {
+    document.getElementById('see-more').style.display = 'none';
+  }
+
+  if (dbMessages.length > 0) {
+    msgs = dbMessages.map(dbMsg => Msg.dbMessageToMsg(dbMsg));
+    promptMsg(msgs, showOldMessages);
+  }
+
+  return msgs;
+}
+
+async function postMessagesAsync(newMsg) {
+  const newMessage = (await axios.post(
+    path,
+    {
+      data: newMsg
+    }
+  )).data;
+
+  console.log(newMessage);
+  msgs.unshift(newMessage);
+
+  promptMsg(msgs, false);
+}
+
+
+const addMsgBtn = document.getElementById('send-button');
+const addMsgInput = document.getElementById('msg-input');
+
+getMessagesAsync(false);
+
+addMsgInput.onkeydown = addMsg;
